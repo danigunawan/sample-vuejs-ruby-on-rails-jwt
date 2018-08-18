@@ -4,11 +4,11 @@
 
 Some features was implemented:
 
-* Login / logout
+* Login / logout (for registered user)
 
 * Home page
 
-* Upload video
+* Upload video (registered user can upload video)
 
-* My video page
+* My video page (registered user can view video)
 
