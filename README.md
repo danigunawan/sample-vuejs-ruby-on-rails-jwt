@@ -1,24 +1,14 @@
-# README
+# Sample App using VueJS + Ruby on Rails + JWT (JSON Web Token)
 
-This README would normally document whatever steps are necessary to get the
-application up and running.
+# Features
 
-Things you may want to cover:
+Some features was implemented:
 
-* Ruby version
+* Login / logout
 
-* System dependencies
+* Home page
 
-* Configuration
+* Upload video
 
-* Database creation
+* My video page
 
-* Database initialization
-
-* How to run the test suite
-
-* Services (job queues, cache servers, search engines, etc.)
-
-* Deployment instructions
-
-* ...
