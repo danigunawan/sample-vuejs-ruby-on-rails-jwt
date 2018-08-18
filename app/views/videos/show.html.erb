@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Minitube</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.7.1/css/bulma.min.css">
+    
+  </head>
+  <body>
+  <section class="section" id="app">
+    <div class="container" v-if="login.status">
+      <nav class="navbar" role="navigation" aria-label="main navigation">
+        <div class="navbar-brand">
+          <a class="navbar-item" href="https://bulma.io">
+            <img src="https://bulma.io/images/bulma-logo.png" alt="Bulma: a modern CSS framework based on Flexbox" width="112" height="28">
+          </a>
+
+          <div class="navbar-burger burger" data-target="navbarExampleTransparentExample">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+        </div>
+        <div id="navbarExampleTransparentExample" class="navbar-menu">
+          <div class="navbar-start">
+            <a class="navbar-item" href="/">
+              Home
+            </a>
+          </div>
+          <div class="navbar-end">
+            <a class="navbar-item" v-on:click="logout">
+              Logout
+            </a>
+          </div>
+        </div>
+      </nav>
+      <section class="section">
+        <div class="container">
+            <h3 class="title">Submit video</h3>
+
+            <div class="field">
+                <label class="label">Title</label>
+                <div class="control">
+                    <input v-bind:class="{ 'is-danger': alertTitle != '' }" class="input" type="text" placeholder="Text input" v-model="title">
+                </div>
+                <p class="help is-danger" v-if="alertTitle != ''">{{ alertTitle }}</p>
+            </div>
+
+            <div class="field">
+            <div class="file">
+            <label class="file-label">
+                <input class="file-input" ref="file" type="file" name="video" accept="video/*" v-on:change="handleFileUpload">
+                <span class="file-cta">
+                <span class="file-icon">
+                    <i class="fas fa-upload"></i>
+                </span>
+                <span class="file-label">
+                    Choose a file…
+                </span>
+                </span>
+            </label>
+            </div>
+            </div>
+
+
+
+            <div class="field is-grouped">
+            <div class="control">
+                <button class="button is-link" v-on:click="submitVideo">Submit</button>
+            </div>
+            <div class="control">
+                <button class="button is-text">Cancel</button>
+            </div>
+            </div>
+        </div>
+      </section>
+      <section class="section">
+        <div class="container">
+            <h3 class="title">My Videos</h3>
+          <div class="columns" v-for="n in totalColumn" v-if="totalColumn > 0">
+            <div class="column" v-for="row in getColumn(n)">
+              <div class="card">
+                <div class="card-content">
+                <p class="title">
+                  <video width="100%" controls>
+                    <source v-bind:src="row.url_base+'/'+row.url_path">
+                    Your browser does not support HTML5 video.
+                  </video>
+                </p>
+                <p class="subtitle">
+                  {{row.title}} | {{row.user_name}}
+                </p>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+    </div>
+  </section>
+  <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  <script src="https://unpkg.com/sweetalert/dist/sweetalert.min.js"></script>
+  <script>
+    //const BASE_URL = 'http://localhost:3000'
+    //axios.defaults.headers.post['Content-Type'] = 'application/json'
+    var token = ''
+    if (localStorage.getItem('user-token')) {
+      token = localStorage.getItem('user-token')
+    }
+    var headers = {
+        'Content-Type': 'application/json',
+        'Authorization': token
+    }
+    var app = new Vue({
+      el: '#app',
+      data: {
+        message: 'Hello Vue!',
+        showLogin: false,
+        videoList: [],
+        totalColumn: 0,
+        perColumn: 4,
+        title: '',
+        alertTitle: '',
+        file: '',
+        login: {
+          status: false
+        }
+      },
+      mounted: function(){
+        this.checkUserToken()
+        this.getMyVideoList()
+      },
+      methods: {
+        logout: function() {
+          localStorage.removeItem('user-token')
+          this.login.status = false
+          window.location = "/"
+        },
+        checkUserToken: function(){
+          let token = localStorage.getItem('user-token')
+          if (token) {
+            this.login.status = true
+          } else {
+            this.login.status = false
+          }
+        },
+        getColumn : function(num){
+          let data = []
+          let start = (num-1)*this.perColumn
+          let length = num*this.perColumn
+          if(length > this.videoList.length){
+            length = this.videoList.length
+          }
+          for(i=start;i<length;i++){
+            data.push(this.videoList[i])
+          }
+          //console.log("data: "+data)
+          return data
+        },
+        getMyVideoList : function(){
+            var vm = this
+            axios.post('/video/my_video.json',{
+                user_id: '1'
+            }, {
+                headers: headers
+            })
+            .then(function (response) {
+                // handle success
+                console.log(response.data);
+                if(response.data && response.data.length > 0){
+                let dataLength = response.data.length
+                vm.totalColumn = Math.ceil(dataLength/vm.perColumn)
+                vm.videoList = response.data
+                
+                }
+                
+            })
+            .catch(function (error) {
+                // handle error
+                console.log(error);
+                
+                if (error.response.status == '401') {
+                  swal("error", "Session expired. Please Login", "error").then((value) => {
+                    window.location = "/"
+                  })
+                } else {
+                  if (error.response.data.code == 'jwt') {  
+                    swal("error", "Session expired. Please Login", "error").then((value) => {
+                      window.location = "/"
+                    })
+                  } else {
+                    swal("Oops..something wrong", "Please try again" + error.response.data.message, "error")
+                  }
+                  
+                }
+            })
+            .then(function () {
+                // always executed
+            })
+        },
+        handleFileUpload : function(){
+          this.file = this.$refs.file.files[0];
+        },
+        submitVideo : function(){
+            if(this.title == ''){
+                this.alertTitle = 'This title is required'
+                return
+            }
+        
+            var vm = this
+            let formData = new FormData()
+            formData.append('file', vm.file)
+            formData.append('user_id', '1')
+            formData.append('title', vm.title)
+            axios.post('/video/create.json',formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                    'Authorization': token
+                }
+            })
+            .then(function (response) {
+                // handle success
+                console.log(response.data);
+                if(response.data.code == 'success'){
+                    vm.title = ''
+                    swal("success", response.data.message, "success")
+                    vm.getMyVideoList()
+                } else {
+                    swal("error", response.data.message, "error");    
+                }
+                
+            })
+            .catch(function (error) {
+                // handle error
+                console.log(error);
+                swal("Oops..something wrong", "Please try again", "error")
+            })
+            .then(function () {
+                // always executed
+            })
+        }
+      }
+    })
+  </script>
+  </body>
+</html>

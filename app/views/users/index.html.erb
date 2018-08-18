@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Minitube</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.7.1/css/bulma.min.css">
+    
+  </head>
+  <body>
+  <section class="section">
+    <div class="container" id="app">
+      <nav class="navbar" role="navigation" aria-label="main navigation">
+        <div class="navbar-brand">
+          <a class="navbar-item" href="https://bulma.io">
+            <img src="https://bulma.io/images/bulma-logo.png" alt="Bulma: a modern CSS framework based on Flexbox" width="112" height="28">
+          </a>
+
+          <div class="navbar-burger burger" data-target="navbarExampleTransparentExample">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+        </div>
+        <div id="navbarExampleTransparentExample" class="navbar-menu">
+          <div class="navbar-start">
+            <a class="navbar-item" href="video/my_list" v-if="login.status">
+              My Video
+            </a>
+          </div>
+          <div class="navbar-end">
+            <div class="dropdown is-right" v-bind:class="{'is-active': showLogin}" v-if="!login.status">
+              <div class="dropdown-trigger">
+                <button class="button" aria-haspopup="true" aria-controls="dropdown-menu2" v-on:click="clickLogin">
+                  <span>Login</span>
+                  <span class="icon is-small">
+                    <i class="fas fa-angle-down" aria-hidden="true"></i>
+                  </span>
+                </button>
+              </div>
+              <div class="dropdown-menu" id="dropdown-menu2" role="menu">
+                <div class="dropdown-content">
+                  <div class="dropdown-item">
+                    <div class="field">
+                      <p class="control has-icons-left has-icons-right">
+                        <input class="input" type="email" placeholder="Email" v-model="login.email">
+                        <span class="icon is-small is-left">
+                          <i class="fas fa-envelope"></i>
+                        </span>
+                        <span class="icon is-small is-right">
+                          <i class="fas fa-check"></i>
+                        </span>
+                      </p>
+                    </div>
+                    <div class="field">
+                      <p class="control has-icons-left">
+                        <input class="input" type="password" placeholder="Password" v-model="login.password">
+                        <span class="icon is-small is-left">
+                          <i class="fas fa-lock"></i>
+                        </span>
+                      </p>
+                    </div>
+                    <div class="field">
+                      <p class="control">
+                        <button class="button is-success" v-on:click="submitLogin">
+                          Submit
+                        </button>
+                      </p>
+                    </div>
+
+                  </div>
+                </div>
+              </div>
+            </div>
+            <a class="navbar-item" v-if="login.status" v-on:click="logout">
+              Logout
+            </a>
+          </div>
+        </div>
+      </nav>
+      <section class="section">
+        <div class="container">
+          <div class="columns" v-for="n in totalColumn" v-if="totalColumn > 0">
+            <div class="column" v-for="row in getColumn(n)">
+              <div class="card">
+                <div class="card-content">
+                <p class="title">
+                  <video width="100%" controls>
+                    <source v-bind:src="row.url_base+'/'+row.url_path">
+                    Your browser does not support HTML5 video.
+                  </video>
+                </p>
+                <p class="subtitle">
+                  {{row.title}} | {{row.user_name}}
+                </p>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+    </div>
+  </section>
+  <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  <script src="https://unpkg.com/sweetalert/dist/sweetalert.min.js"></script>
+  <script>
+    //const BASE_URL = 'http://localhost:3000'
+    //axios.defaults.headers.post['Content-Type'] = 'application/json'
+    var app = new Vue({
+      el: '#app',
+      data: {
+        message: 'Hello Vue!',
+        showLogin: false,
+        videoList: [],
+        totalColumn: 0,
+        perColumn: 4,
+        login: {
+          email: '',
+          password: '',
+          status: false
+        }
+      },
+      created: function(){
+        
+      },
+      mounted: function(){
+        this.checkUserToken()
+        this.getVideoList()
+      },
+      methods: {
+        clickLogin : function(){
+          if (this.showLogin) {
+            this.showLogin = false
+          } else {
+            this.showLogin = true
+          }
+        },
+        checkUserToken: function(){
+          let token = localStorage.getItem('user-token')
+          if (token) {
+            this.login.status = true
+          } else {
+            this.login.status = false
+          }
+        },
+        submitLogin : function(){
+          var vm = this 
+          axios.post('/auth/login.json',{
+                email: this.login.email,
+                password: this.login.password
+            }, {
+                headers: {
+                    'Content-Type': 'application/json',        
+                }
+            })
+            .then(function (response) {
+                // handle success
+                // console.log(response.data.access_token)
+                localStorage.setItem('user-token', response.data.access_token)
+                vm.login.status = true
+            })
+            .catch(function (error) {
+                // handle error
+                // console.log(error.response.data)
+                // console.log(error.response.status)
+                // console.log(error.response.headers)
+                localStorage.removeItem('user-token')
+                if (error.response.status == '401') {
+                  swal("error", "Invalid email or password", "error")
+                } else {
+                  console.log('error: '+error.message)
+                  swal("Oops..something wrong", "Please try again", "error")
+                }
+                
+            })
+            .then(function () {
+                // always executed
+            })
+        },
+        logout: function() {
+          localStorage.removeItem('user-token')
+          this.login.status = false
+        },
+        getColumn : function(num){
+          let data = []
+          let start = (num-1)*this.perColumn
+          let length = num*this.perColumn
+          if(length > this.videoList.length){
+            length = this.videoList.length
+          }
+          for(i=start;i<length;i++){
+            data.push(this.videoList[i])
+          }
+          console.log("data: "+data)
+          return data
+        },
+        getVideoList : function(){
+          var vm = this
+          axios.get('/video/list.json')
+          .then(function (response) {
+            // handle success
+            console.log(response.data);
+            if(response.data && response.data.length > 0){
+              let dataLength = response.data.length
+              vm.totalColumn = Math.ceil(dataLength/vm.perColumn)
+              vm.videoList = response.data
+              
+            }
+          })
+          .catch(function (error) {
+            // handle error
+            console.log(error);
+            swal("Oops..something wrong", "Please try again", "error");
+          })
+          .then(function () {
+            // always executed
+          })
+        }
+      }
+    })
+  </script>
+  </body>
+</html>
